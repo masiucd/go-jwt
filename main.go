@@ -5,11 +5,15 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 func main() {
 
 	app := fiber.New()
+	app.Use(logger.New(logger.Config{
+		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
+	}))
 
 	app.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.SendString("Hello")
