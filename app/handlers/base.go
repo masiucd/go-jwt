@@ -1,34 +1,40 @@
 package handlers
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gofiber/fiber/v2"
-	"github.com/masiucd/go-jwt/app/config"
+	fiber "github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
+	config "github.com/masiucd/go-jwt/app/config"
+	types "github.com/masiucd/go-jwt/types"
 )
 
 // Home route
 func Home(ctx *fiber.Ctx) error {
-	return ctx.SendString("Home")
-}
-
-// ProtectedRoute func
-func ProtectedRoute(ctx *fiber.Ctx) error {
-	user := ctx.Locals("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	id := claims["sub"].(string)
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Hello user with id = " + id,
+		"message": "Hello an d welcome to Jwt tutorial with Go",
 	})
 }
 
-func login(ctx *fiber.Ctx) error {
-	type request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	var body request
+// GetMe is the protected route
+// We need to be authenticated hen access this route
+func GetMe(ctx *fiber.Ctx) error {
+	user := ctx.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	fmt.Println(claims)
+	id := claims["sub"]
+	s := fmt.Sprintf("%f", id) // convert float64 to string
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Hello user with id #= " + strings.ReplaceAll(s, "0", ""),
+	})
+}
+
+// Login route
+// and to receive the Jwt token
+func Login(ctx *fiber.Ctx) error {
+	var body types.UserRequest
 	err := ctx.BodyParser(&body)
 	if err != nil {
 		ctx.Status(fiber.StatusBadRequest).JSON(
@@ -45,26 +51,24 @@ func login(ctx *fiber.Ctx) error {
 	}
 
 	// HS256
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["sub"] = "1" // id
-	claims["expire"] = time.Now().Add(time.Hour * 2).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":    1,
+		"expire": time.Now().Add(time.Hour * 3).Unix(),
+	})
 
-	s, err := token.SignedString([]byte(config.JwtSecret))
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString([]byte("secret"))
 
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
-	}
+	fmt.Println(tokenString, err)
 	return ctx.Status(200).JSON(fiber.Map{
 		"message": "success",
-		"token":   s,
-		"user": struct {
-			ID       int    `json:"id"`
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}{ID: 1, Email: config.UserEmail, Password: config.Pass},
+		// "token":   tokenResult,
+		"user": types.UserResponse{
+			ID:       1,
+			Token:    tokenString,
+			Email:    config.UserEmail,
+			Password: config.Pass,
+		},
 	})
 
 }
