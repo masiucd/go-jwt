@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"fmt"
-
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v2"
 	"github.com/masiucd/go-jwt/app/config"
@@ -15,21 +13,6 @@ func Protected() fiber.Handler {
 		SigningKey:   []byte(config.JwtSecret),
 		ErrorHandler: jwtError,
 	})
-}
-
-// Test protect routes
-func Test() func(ctx *fiber.Ctx) error {
-	return func(ctx *fiber.Ctx) error {
-		x := ctx.Request().Header.Peek("Authorization")
-		fmt.Println("Hello", string(x))
-		if string(x) != "foobar" {
-			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"message": "Unauthorized",
-			})
-		}
-		return ctx.Next()
-	}
-
 }
 
 func jwtError(c *fiber.Ctx, err error) error {

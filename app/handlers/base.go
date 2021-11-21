@@ -3,18 +3,18 @@ package handlers
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	fiber "github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	config "github.com/masiucd/go-jwt/app/config"
 	types "github.com/masiucd/go-jwt/types"
+	"github.com/masiucd/go-jwt/util"
 )
 
 // Home route
 func Home(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Hello an d welcome to Jwt tutorial with Go",
+		"message": "Hello and welcome to Jwt tutorial with Go",
 	})
 }
 
@@ -50,19 +50,16 @@ func Login(ctx *fiber.Ctx) error {
 		})
 	}
 
-	// HS256
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":    1,
-		"expire": time.Now().Add(time.Hour * 3).Unix(),
-	})
+	tokenString, err := util.GenerateToken()
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   err.Error(),
+			"message": "cannot generate token",
+		})
+	}
 
-	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString([]byte("secret"))
-
-	fmt.Println(tokenString, err)
 	return ctx.Status(200).JSON(fiber.Map{
 		"message": "success",
-		// "token":   tokenResult,
 		"user": types.UserResponse{
 			ID:       1,
 			Token:    tokenString,
